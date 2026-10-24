@@ -1,0 +1,202 @@
+==== Speed Test, 2026-10-18 20:57 (build Oct 18 2026 20:31:23)
+Mac:   Macintosh, 68030, 68882, System 7.5.5, 8 MB, Open Transport, free memory 1680 KB
+
+CRYPTO, NO NETWORK
+One operation per line. Under 5 s it runs 3 times; the middle time is shown.
+
+P-256 signature check (a first connection has 2: certificate, key exchange)
+  mbedTLS ..................................   7.337 s  ok
+  mbedTLS, 64 KB pool ......................   6.134 s  ok
+  micro-ecc, C, -Os ........................   6.359 s  ok
+  micro-ecc, C, -O3 ........................   5.423 s  ok
+  micro-ecc, unrolled asm multiply .........   3.551 s  ok  (3.240 s, 3.551 s, 3.554 s)
+  micro-ecc, Karatsuba multiply ............   4.999 s  ok  (4.999 s, 4.716 s, 5.609 s)  (dropped)
+  micro-ecc, Comba + Solinas asm ...........   2.036 s  ok  (2.033 s, 2.039 s, 2.036 s)
+
+P-256 check with tables for the server's key (built after a connection)
+  wNAF, C, -O3 .............................   3.282 s  ok  (3.285 s, 3.282 s, 3.276 s)
+  wNAF, unrolled asm multiply ..............   2.886 s  ok  (3.028 s, 2.886 s, 2.876 s)
+  wNAF, Comba + Solinas asm ................   1.607 s  ok  (1.605 s, 1.607 s, 1.609 s)
+  Straus, Comba + Solinas asm ..............   1.264 s  ok  (1.169 s, 1.264 s, 1.392 s)  (today)
+
+Building those tables (once per server key, after the page)
+  table (G,Q), C, -O3 ......................   0.566 s  ok  (0.566 s, 0.561 s, 0.566 s)
+  table (G,Q), unrolled asm multiply .......   0.693 s  ok  (0.553 s, 0.693 s, 0.722 s)
+  table (G,Q), Comba + Solinas asm .........   0.535 s  ok  (0.535 s, 0.537 s, 0.535 s)
+  midpoint 2^128 Q, Comba ..................   0.496 s  ok  (0.496 s, 0.495 s, 0.680 s)  (kept on disk by the app)
+  table (G2,Q2), Comba .....................   0.633 s  ok  (0.545 s, 0.767 s, 0.633 s)
+
+P-384 signature check (GTS Root R4 on WE1, until WE1 was pinned)
+  mbedTLS ..................................  14.842 s  ok
+  mbedTLS, 64 KB pool ......................  14.249 s  ok
+
+X25519 (a first connection has 1, and 1 more makes the key pair)
+  mbedTLS ..................................   5.820 s  ok
+  mbedTLS, 64 KB pool ......................   4.867 s  ok  (4.543 s, 4.873 s, 4.867 s)
+  donna in C ...............................   1.771 s  ok  (1.689 s, 1.915 s, 1.771 s)
+  donna, assembly multiply .................   1.686 s  ok  (1.686 s, 1.683 s, 1.863 s)  (dropped)
+  donna, fused assembly ....................   1.874 s  ok  (1.643 s, 1.885 s, 1.874 s)  (dropped)
+  8 x 32-bit on Comba assembly .............   1.133 s  ok  (1.133 s, 1.129 s, 1.134 s)  (today)
+
+LIVE, TODAY'S ENGINE (Claude 68 and Notion Classic, October 2026)
+One page = connect to api.notion.com, handshake, GET /v1/users/me without a token
+(answered with HTTP 401), close. Times: TCP connect, TLS handshake, request.
+api.notion.com is 208.103.161.1 (DNS 0.414 s)
+
+Fresh start 1 of 3: nothing stored
+  key pair made before connecting: 1.341 s
+  page 1  TCP 0.080 s, handshake 9.492 s, HTTP 401 in 2.164 s
+          crypto: P-256 x2 (plain) 4.527 s, X25519 1.126 s, rest 3.839 s
+          after the page: tables 1.829 s, next key pair 1.424 s
+  page 2  TCP 0.167 s, handshake 0.486 s (resumed), HTTP 401 in 4.618 s
+
+Fresh start 2 of 3: nothing stored
+  key pair made before connecting: 1.374 s
+  page 1  TCP 0.093 s, handshake 9.387 s, HTTP 401 in 0.492 s
+          crypto: P-256 x2 (plain) 4.175 s, X25519 1.133 s, rest 4.079 s
+          after the page: tables 1.807 s, next key pair 1.128 s
+  page 2  TCP 0.207 s, handshake 0.441 s (resumed), HTTP 401 in 4.160 s
+
+Fresh start 3 of 3: nothing stored
+  key pair made before connecting: 1.385 s
+  page 1  TCP 0.063 s, handshake 9.315 s, HTTP 401 in 0.455 s
+          crypto: P-256 x2 (plain) 4.188 s, X25519 1.232 s, rest 3.895 s
+          after the page: tables 2.019 s, next key pair 1.237 s
+  page 2  TCP 0.241 s, handshake 0.434 s (resumed), HTTP 401 in 4.207 s
+
+Ticket refused or expired: certificate check remembered, tables built
+  cold    TCP 0.081 s, handshake 6.450 s, HTTP 401 in 0.817 s
+          crypto: P-256 x1 (Straus) 1.325 s, 1 check remembered, X25519 1.127 s, rest 3.998 s
+          after the page: next key pair 1.601 s
+  cold    TCP 0.104 s, handshake 6.219 s, HTTP 401 in 0.857 s
+          crypto: P-256 x1 (Straus) 1.350 s, 1 check remembered, X25519 1.130 s, rest 3.740 s
+          after the page: next key pair 1.334 s
+  cold    TCP 0.065 s, handshake 6.316 s, HTTP 401 in 0.604 s
+          crypto: P-256 x1 (Straus) 1.347 s, 1 check remembered, X25519 1.130 s, rest 3.839 s
+          after the page: next key pair 1.343 s
+
+Resumed with a session ticket
+  resumed TCP 0.074 s, handshake 0.434 s (resumed), HTTP 401 in 4.163 s
+  resumed TCP 0.079 s, handshake 0.436 s (resumed), HTTP 401 in 4.315 s
+  resumed TCP 0.078 s, handshake 0.430 s (resumed), HTTP 401 in 4.167 s
+
+LIVE, EACH ROW OF THE CHARTS (oldest first; each adds one method)
+One page = connect to api.notion.com, handshake, GET /v1/users/me without a token
+(answered with HTTP 401), close. Times: TCP connect, TLS handshake, request.
+A failed page still shows how long the handshake took and what it spent on crypto.
+Page 2 is skipped when nothing from page 1 could make it different.
+
+1. Stock mbedTLS
+  page 1  FAILED: handshake after 46.630 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (mbedTLS) 15.862 s, P-384 16.106 s, key pair 6.849 s, X25519 7.193 s, rest 0.619 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+2. + micro-ecc for P-256 (C, -Os)
+  page 1  FAILED: handshake after 44.382 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 12.914 s, P-384 16.541 s, key pair 6.917 s, X25519 7.236 s, rest 0.774 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+3. + WE1 pinned: no P-384 check
+  page 1  FAILED: handshake after 28.596 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.153 s, key pair 6.884 s, X25519 7.840 s, rest 0.719 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+4. + key pair made before connecting
+  key pair made before connecting: 6.505 s
+  page 1  FAILED: handshake after 21.794 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.341 s, X25519 7.833 s, rest 0.620 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+5. + 64 KB memory pool
+  key pair made before connecting: 4.752 s
+  page 1  FAILED: handshake after 18.781 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.067 s, X25519 5.043 s, rest 0.671 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+6. + signature checks remembered
+  key pair made before connecting: 4.749 s
+  page 1  FAILED: handshake after 19.436 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.497 s, X25519 5.173 s, rest 0.766 s
+  page 2  FAILED: handshake after 17.244 s, error -0x7280 the connection closed
+          crypto: P-256 x1 (plain) 6.965 s, 1 check remembered, key pair 4.682 s, X25519 4.791 s, rest 0.805 s
+
+7. + X25519 in C (donna)
+  key pair made before connecting: 2.160 s
+  page 1  FAILED: handshake after 15.599 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 12.910 s, X25519 1.788 s, rest 0.900 s
+  page 2  TCP 0.083 s, handshake 14.038 s, HTTP 401 in 1.046 s
+          crypto: P-256 x1 (plain) 6.660 s, 1 check remembered, key pair 1.690 s, X25519 1.698 s, rest 3.990 s
+          after the page: next key pair 2.193 s
+
+8. + wNAF tables
+  key pair made before connecting: 1.686 s
+  page 1  FAILED: handshake after 16.200 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.622 s, X25519 1.888 s, rest 0.690 s
+  page 2  TCP 0.075 s, handshake 14.316 s, HTTP 401 in 0.486 s
+          crypto: P-256 x1 (plain) 6.758 s, 1 check remembered, key pair 1.697 s, X25519 1.693 s, rest 4.168 s
+          after the page: tables 1.025 s, next key pair 1.691 s
+
+9. + -O3 for the curve code
+  key pair made before connecting: 1.687 s
+  page 1  TCP 0.059 s, handshake 14.253 s, HTTP 401 in 0.478 s
+          crypto: P-256 x2 (plain) 8.799 s, X25519 1.686 s, rest 3.768 s
+          after the page: tables 0.796 s, next key pair 1.687 s
+  page 2  TCP 0.088 s, handshake 9.195 s, HTTP 401 in 0.499 s
+          crypto: P-256 x1 (wNAF) 3.555 s, 1 check remembered, X25519 1.772 s, rest 3.868 s
+          after the page: next key pair 2.199 s
+
+10. + unrolled assembly multiply
+  key pair made before connecting: 1.693 s
+  page 1  TCP 0.069 s, handshake 12.773 s, HTTP 401 in 0.493 s
+          crypto: P-256 x2 (plain) 7.148 s, X25519 1.779 s, rest 3.846 s
+          after the page: tables 0.787 s, next key pair 1.693 s
+  page 2  TCP 0.073 s, handshake 8.364 s, HTTP 401 in 0.495 s
+          crypto: P-256 x1 (wNAF) 2.907 s, 1 check remembered, X25519 1.694 s, rest 3.763 s
+          after the page: next key pair 1.889 s
+
+11. + session tickets
+  key pair made before connecting: 1.890 s
+  page 1  TCP 0.065 s, handshake 12.848 s, HTTP 401 in 0.481 s
+          crypto: P-256 x2 (plain) 7.030 s, X25519 2.004 s, rest 3.815 s
+          after the page: tables 0.780 s, next key pair 1.687 s
+  page 2  TCP 0.059 s, handshake 0.436 s (resumed), HTTP 401 in 4.816 s
+
+12. + Comba and Solinas assembly
+  key pair made before connecting: 2.169 s
+  page 1  TCP 0.062 s, handshake 10.133 s, HTTP 401 in 0.459 s
+          crypto: P-256 x2 (plain) 4.224 s, X25519 1.863 s, rest 4.046 s
+          after the page: tables 0.758 s, next key pair 1.686 s
+  page 2  TCP 0.351 s, handshake 0.471 s (resumed), HTTP 401 in 4.786 s
+
+13. + Straus verify
+  key pair made before connecting: 2.184 s
+  page 1  TCP 0.059 s, handshake 9.957 s, HTTP 401 in 0.460 s
+          crypto: P-256 x2 (plain) 4.494 s, X25519 1.688 s, rest 3.774 s
+          after the page: tables 1.813 s, next key pair 1.999 s
+  page 2  TCP 0.337 s, handshake 0.454 s (resumed), HTTP 401 in 4.138 s
+
+14. + X25519 on Comba (today)
+  key pair made before connecting: 1.344 s
+  page 1  TCP 0.059 s, handshake 9.204 s, HTTP 401 in 0.514 s
+          crypto: P-256 x2 (plain) 4.267 s, X25519 1.135 s, rest 3.802 s
+          after the page: tables 1.815 s, next key pair 1.135 s
+  page 2  TCP 0.076 s, handshake 0.445 s (resumed), HTTP 401 in 4.443 s
+
+SUMMARY: handshake time per row
+                                        page 1              page 2            
+   1 Stock mbedTLS                      FAILED 46.630 s     -                 
+   2 + micro-ecc for P-256 (C, -Os)     FAILED 44.382 s     -                 
+   3 + WE1 pinned: no P-384 check       FAILED 28.596 s     -                 
+   4 + key pair made before connecting  FAILED 21.794 s     -                 
+   5 + 64 KB memory pool                FAILED 18.781 s     -                 
+   6 + signature checks remembered      FAILED 19.436 s     FAILED 17.244 s   
+   7 + X25519 in C (donna)              FAILED 15.599 s     14.038 s          
+   8 + wNAF tables                      FAILED 16.200 s     14.316 s          
+   9 + -O3 for the curve code           14.253 s            9.195 s           
+  10 + unrolled assembly multiply       12.773 s            8.364 s           
+  11 + session tickets                  12.848 s            0.436 s           
+  12 + Comba and Solinas assembly       10.133 s            0.471 s           
+  13 + Straus verify                    9.957 s             0.454 s           
+  14 + X25519 on Comba (today)          9.204 s             0.445 s           
+
+Done.

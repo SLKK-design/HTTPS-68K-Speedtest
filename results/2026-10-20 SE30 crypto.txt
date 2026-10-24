@@ -1,0 +1,49 @@
+==== Speed Test, 2026-10-20 14:40 (build Oct 20 2026 14:11:48)
+Mac: Macintosh SE/30, 68030, 68882, System 7.5.5, 8 MB, free memory 1586 KB
+Network: Open Transport 1.3, Open Transport Bug Patcher: yes (no TCP window scaling offered)
+
+CRYPTO, NO NETWORK
+One operation per line. Under 5 s it runs 3 times; the middle time is shown.
+
+P-256 signature check (a first connection has 2: certificate, key exchange)
+  mbedTLS ..................................   7.527 s  ok
+  mbedTLS, 64 KB pool ......................   6.604 s  ok
+  micro-ecc, C, -Os ........................   6.340 s  ok
+  micro-ecc, C, -O3 ........................   4.530 s  ok  (4.530 s, 4.825 s, 4.514 s)
+  micro-ecc, unrolled asm multiply .........   3.232 s  ok  (3.541 s, 3.231 s, 3.232 s)
+  micro-ecc, Karatsuba multiply ............   4.994 s  ok  (4.994 s, 5.222 s, 4.689 s)  (dropped)
+  micro-ecc, Comba asm, C reduction ........   2.954 s  ok  (2.784 s, 3.091 s, 2.954 s)
+  micro-ecc, Comba + Solinas asm ...........   2.035 s  ok  (2.035 s, 2.038 s, 2.033 s)
+
+P-256 check with tables for the server's key (built after a connection)
+  wNAF, C, -O3 .............................   3.580 s  ok  (3.580 s, 3.285 s, 3.601 s)
+  wNAF, unrolled asm multiply ..............   2.728 s  ok  (2.872 s, 2.570 s, 2.728 s)
+  wNAF, Comba + Solinas asm ................   1.819 s  ok  (1.948 s, 1.706 s, 1.819 s)
+  2-bit window, C, -O3 .....................   3.331 s  ok  (3.331 s, 3.334 s, 3.327 s)  (dropped)
+  3-bit window, C, -O3 .....................   2.987 s  ok  (2.944 s, 3.208 s, 2.987 s)  (dropped)
+  Straus, Comba + Solinas asm ..............   1.169 s  ok  (1.169 s, 1.501 s, 1.168 s)  (today)
+
+Building those tables (once per server key, after the page)
+  table (G,Q), C, -O3 ......................   0.565 s  ok  (0.559 s, 0.565 s, 0.760 s)
+  table (G,Q), unrolled asm multiply .......   0.553 s  ok  (0.600 s, 0.552 s, 0.553 s)
+  table (G,Q), Comba + Solinas asm .........   0.536 s  ok  (0.532 s, 0.536 s, 0.771 s)
+  table 2-bit window (16 points), C, -O3 ...   0.609 s  ok  (0.625 s, 0.609 s, 0.609 s)
+  table 3-bit window (64 points), C, -O3 ...   3.168 s  ok  (2.854 s, 3.168 s, 3.389 s)
+  midpoint 2^128 Q, Comba ..................   0.514 s  ok  (0.514 s, 0.509 s, 0.516 s)  (kept on disk by the app)
+  table (G2,Q2), Comba .....................   0.543 s  ok  (0.543 s, 0.539 s, 0.543 s)
+
+P-384 signature check (GTS Root R4 on WE1, until WE1 was pinned)
+  mbedTLS ..................................  15.028 s  ok
+  mbedTLS, 64 KB pool ......................  14.675 s  ok
+  mbedTLS, 32 KB pool ......................  13.697 s  ok  (fits in 32 KB)
+
+X25519 (a first connection has 1, and 1 more makes the key pair)
+  mbedTLS ..................................   5.758 s  ok
+  mbedTLS, 64 KB pool ......................   5.074 s  ok
+  mbedTLS, 32 KB pool ......................   4.855 s  ok  (4.855 s, 4.881 s, 4.576 s)  (fits in 32 KB)
+  donna in C ...............................   1.685 s  ok  (1.685 s, 1.681 s, 1.833 s)
+  donna, assembly multiply .................   1.726 s  ok  (1.726 s, 1.692 s, 1.891 s)  (dropped)
+  donna, fused assembly ....................   1.795 s  ok  (1.795 s, 1.573 s, 1.887 s)  (dropped)
+  8 x 32-bit on Comba assembly .............   1.130 s  ok  (1.126 s, 1.130 s, 1.131 s)  (today)
+
+Done.

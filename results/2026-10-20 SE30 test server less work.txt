@@ -1,0 +1,109 @@
+==== Speed Test, 2026-10-20 15:58 (build Oct 20 2026 15:42:24)
+Mac: Macintosh SE/30, 68030, 68882, System 7.5.5, 8 MB, free memory 1585 KB
+Network: Open Transport 1.3, Open Transport Bug Patcher: yes (no TCP window scaling offered)
+
+LIVE, EACH ROW OF THE CHARTS, AGAINST THE TEST SERVER (less work first)
+The test server (tools/lab_server.py, 192.168.1.248 port 4433) plays api.notion.com: the
+same cipher, a certificate chain of the same shape, session tickets, an HTTP 401
+of the same size, but no 15 s limit, so every page can finish.
+Page 2 is skipped when nothing from page 1 could make it different.
+api.notion.com is 208.103.161.17 (DNS 0.281 s)
+
+1. Stock mbedTLS
+  page 1  TCP 0.145 s, handshake 48.251 s, HTTP 401 in 0.256 s
+          crypto: P-256 x2 (mbedTLS) 16.283 s, P-384 16.004 s, key pair 7.638 s, X25519 7.429 s, rest 0.897 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+2. + WE1 pinned: no P-384 check
+  page 1  TCP 0.076 s, handshake 32.718 s, HTTP 401 in 0.376 s
+          crypto: P-256 x2 (mbedTLS) 16.243 s, key pair 7.404 s, X25519 7.944 s, rest 1.127 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+3. + key pair made before connecting
+  key pair made before connecting: 6.496 s
+  page 1  TCP 0.143 s, handshake 24.908 s, HTTP 401 in 0.253 s
+          crypto: P-256 x2 (mbedTLS) 16.343 s, X25519 7.537 s, rest 1.028 s
+          after the page: next key pair 7.163 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+4. + signature checks remembered
+  key pair made before connecting: 6.645 s
+  page 1  TCP 0.114 s, handshake 24.471 s, HTTP 401 in 0.262 s
+          crypto: P-256 x2 (mbedTLS) 16.265 s, X25519 7.180 s, rest 1.026 s
+          after the page: next key pair 7.095 s
+  page 2  TCP 0.206 s, handshake 17.317 s, HTTP 401 in 0.338 s
+          crypto: P-256 x1 (mbedTLS) 8.351 s, 1 check remembered, X25519 7.822 s, rest 1.144 s
+          after the page: next key pair 6.813 s
+
+5. + session tickets
+  key pair made before connecting: 6.267 s
+  page 1  TCP 0.182 s, handshake 25.483 s, HTTP 401 in 0.206 s
+          crypto: P-256 x2 (mbedTLS) 16.830 s, X25519 7.615 s, rest 1.038 s
+          after the page: next key pair 7.011 s
+  page 2  TCP 0.162 s, handshake 0.458 s (resumed), HTTP 401 in 0.159 s
+
+6. + micro-ecc for P-256 (C, -Os)
+  key pair made before connecting: 6.867 s
+  page 1  TCP 0.059 s, handshake 21.486 s, HTTP 401 in 0.140 s
+          crypto: P-256 x2 (plain) 13.028 s, X25519 7.282 s, rest 1.176 s
+          after the page: next key pair 7.446 s
+  page 2  TCP 0.059 s, handshake 0.667 s (resumed), HTTP 401 in 0.178 s
+
+7. + -O3 for the curve code
+  key pair made before connecting: 6.517 s
+  page 1  TCP 0.096 s, handshake 18.117 s, HTTP 401 in 0.257 s
+          crypto: P-256 x2 (plain) 9.106 s, X25519 7.938 s, rest 1.074 s
+          after the page: next key pair 7.083 s
+  page 2  TCP 0.059 s, handshake 0.659 s (resumed), HTTP 401 in 0.202 s
+
+8. + unrolled assembly multiply
+  key pair made before connecting: 6.882 s
+  page 1  TCP 0.088 s, handshake 15.595 s, HTTP 401 in 0.133 s
+          crypto: P-256 x2 (plain) 6.707 s, X25519 7.688 s, rest 1.200 s
+          after the page: next key pair 6.778 s
+  page 2  TCP 0.138 s, handshake 0.669 s (resumed), HTTP 401 in 0.146 s
+
+9. + Comba and Solinas assembly
+  key pair made before connecting: 6.835 s
+  page 1  TCP 0.111 s, handshake 13.396 s, HTTP 401 in 0.261 s
+          crypto: P-256 x2 (plain) 4.418 s, X25519 7.947 s, rest 1.032 s
+          after the page: next key pair 6.948 s
+  page 2  TCP 0.082 s, handshake 0.692 s (resumed), HTTP 401 in 0.125 s
+
+10. + 64 KB memory pool
+  key pair made before connecting: 4.591 s
+  page 1  TCP 0.105 s, handshake 10.115 s, HTTP 401 in 0.247 s
+          crypto: P-256 x2 (plain) 4.254 s, X25519 4.805 s, rest 1.056 s
+          after the page: next key pair 4.845 s
+  page 2  TCP 0.173 s, handshake 0.666 s (resumed), HTTP 401 in 0.137 s
+
+11. + X25519 in C (donna)
+  key pair made before connecting: 2.241 s
+  page 1  TCP 0.088 s, handshake 7.277 s, HTTP 401 in 0.198 s
+          crypto: P-256 x2 (plain) 4.244 s, X25519 2.009 s, rest 1.025 s
+          after the page: next key pair 1.906 s
+  page 2  TCP 0.066 s, handshake 0.478 s (resumed), HTTP 401 in 0.127 s
+
+12. + X25519 on Comba (today)
+  key pair made before connecting: 1.627 s
+  page 1  TCP 0.336 s, handshake 6.633 s, HTTP 401 in 0.249 s
+          crypto: P-256 x2 (plain) 4.460 s, X25519 1.131 s, rest 1.042 s
+          after the page: next key pair 1.347 s
+  page 2  TCP 0.078 s, handshake 0.484 s (resumed), HTTP 401 in 0.130 s
+
+SUMMARY: handshake time per row
+                                        page 1              page 2            
+   1 Stock mbedTLS                      48.251 s            -                 
+   2 + WE1 pinned: no P-384 check       32.718 s            -                 
+   3 + key pair made before connecting  24.908 s            -                 
+   4 + signature checks remembered      24.471 s            17.317 s          
+   5 + session tickets                  25.483 s            0.458 s           
+   6 + micro-ecc for P-256 (C, -Os)     21.486 s            0.667 s           
+   7 + -O3 for the curve code           18.117 s            0.659 s           
+   8 + unrolled assembly multiply       15.595 s            0.669 s           
+   9 + Comba and Solinas assembly       13.396 s            0.692 s           
+  10 + 64 KB memory pool                10.115 s            0.666 s           
+  11 + X25519 in C (donna)              7.277 s             0.478 s           
+  12 + X25519 on Comba (today)          6.633 s             0.484 s           
+
+Done.

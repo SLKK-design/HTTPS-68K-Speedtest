@@ -1,0 +1,51 @@
+Claude 68 Debug Log - Oct 16 2026 21:36:28
+
+Cmd-Shift-C to copy all text
+
+----
+
+1330K    0.0s TEST        debug build: resume on
+1330K    0.1s WarmUp      start
+1330K    0.3s WarmUp      entry
+1330K    0.5s SslConnect  start
+1330K    0.7s SslInitCont entropy+certs
+1327K    1.1s shamir2     skip-no-slot
+1293K    3.1s TcpConnect  async open
+1293K    4.8s SslHandshak mbedtls handshake
+1288K    5.8s ecdsa       p256-start
+1288K    9.1s ecdsa       p256-ok
+1288K    9.4s ecdsa       p256-start
+1287K   12.5s ecdsa       p256-ok
+1287K   12.8s donna       start
+1287K   14.8s donna       end
+1288K   18.9s SslHandshak ok 13s (ticks=821)
+1288K   19.4s SslHandshak TLS-ECDHE-ECDSA-WITH-CHACHA20-POLY1305-SHA256
+1288K   19.8s SslRequest  ssl_write
+1288K   20.5s SslResponse ssl_read loop
+1288K   21.0s WarmUp      served ping fail
+1286K   21.6s WarmUp      session saved to disk
+1286K   24.3s WarmUp      x25519 replenished
+1286K   24.8s WarmUp      idle ok
+
+> hi
+1283K   63.7s Request     /v1/messages
+1283K   64.2s InitThread  https
+1283K   64.6s HttpsReques start
+1283K   65.1s SslConnect  start
+1283K   65.5s TcpReconnec dead->new stream
+1285K   66.3s SslConnect  resume armed
+1285K   67.0s SslHandshak mbedtls handshake
+1286K   68.4s SslHandshak ok 0s (ticks=55)
+1286K   69.2s SslHandshak TLS-ECDHE-ECDSA-WITH-CHACHA20-POLY1305-SHA256
+1286K   69.7s SslVerifyCe cert check
+1286K   70.2s SslRequest  ssl_write
+1285K   70.8s SslResponse ssl_read loop
+1285K   77.5s on_status   HTTP 200
+1285K   78.3s on_hdrs_don headers parsed
+1285K   78.9s on_body     first chunk
+1285K   79.7s on_msg_comp parse done
+1285K   80.3s SslClose    save session
+1285K   82.4s shamir2     mid-calc
+1285K   83.6s shamir2     ready
+Hi there. What can I help you with?
+1286K   84.9s stream      done

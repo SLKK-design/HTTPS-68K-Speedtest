@@ -1,0 +1,342 @@
+==== Speed Test, 2026-10-19 14:06 (build Oct 19 2026 14:00:40)
+Mac: Macintosh SE/30, 68030, 68882, System 7.5.5, 8 MB, free memory 1670 KB
+Network: Open Transport 1.3, OT Window Fix: yes (no TCP window scaling offered)
+
+CRYPTO, NO NETWORK
+One operation per line. Under 5 s it runs 3 times; the middle time is shown.
+
+P-256 signature check (a first connection has 2: certificate, key exchange)
+  mbedTLS ..................................   7.278 s  ok
+  mbedTLS, 64 KB pool ......................   6.479 s  ok
+  micro-ecc, C, -Os ........................   6.555 s  ok
+  micro-ecc, C, -O3 ........................   4.522 s  ok  (4.522 s, 4.511 s, 4.764 s)
+  micro-ecc, unrolled asm multiply .........   3.537 s  ok  (3.557 s, 3.537 s, 3.231 s)
+  micro-ecc, Karatsuba multiply ............   5.002 s  ok  (dropped)
+  micro-ecc, Comba + Solinas asm ...........   2.039 s  ok  (2.039 s, 2.035 s, 2.040 s)
+
+P-256 check with tables for the server's key (built after a connection)
+  wNAF, C, -O3 .............................   3.594 s  ok  (3.294 s, 3.594 s, 3.717 s)
+  wNAF, unrolled asm multiply ..............   2.577 s  ok  (2.570 s, 2.960 s, 2.577 s)
+  wNAF, Comba + Solinas asm ................   1.767 s  ok  (1.928 s, 1.755 s, 1.767 s)
+  Straus, Comba + Solinas asm ..............   1.167 s  ok  (1.167 s, 1.163 s, 1.471 s)  (today)
+
+Building those tables (once per server key, after the page)
+  table (G,Q), C, -O3 ......................   0.705 s  ok  (0.720 s, 0.562 s, 0.705 s)
+  table (G,Q), unrolled asm multiply .......   0.544 s  ok  (0.582 s, 0.540 s, 0.544 s)
+  table (G,Q), Comba + Solinas asm .........   0.541 s  ok  (0.540 s, 0.542 s, 0.541 s)
+  midpoint 2^128 Q, Comba ..................   0.507 s  ok  (0.507 s, 0.512 s, 0.507 s)  (kept on disk by the app)
+  table (G2,Q2), Comba .....................   0.543 s  ok  (0.544 s, 0.543 s, 0.543 s)
+
+P-384 signature check (GTS Root R4 on WE1, until WE1 was pinned)
+  mbedTLS ..................................  14.746 s  ok
+  mbedTLS, 64 KB pool ......................  14.485 s  ok
+
+X25519 (a first connection has 1, and 1 more makes the key pair)
+  mbedTLS ..................................   6.055 s  ok
+  mbedTLS, 64 KB pool ......................   4.794 s  ok  (4.505 s, 4.794 s, 5.145 s)
+  donna in C ...............................   1.686 s  ok  (1.690 s, 1.686 s, 1.685 s)
+  donna, assembly multiply .................   1.686 s  ok  (1.685 s, 1.692 s, 1.686 s)  (dropped)
+  donna, fused assembly ....................   1.581 s  ok  (1.884 s, 1.573 s, 1.581 s)  (dropped)
+  8 x 32-bit on Comba assembly .............   1.137 s  ok  (1.137 s, 1.498 s, 1.129 s)  (today)
+
+LIVE, TODAY'S ENGINE (Claude 68 and Notion Classic, October 2026)
+One page = connect to api.notion.com, handshake, GET /v1/users/me without a token
+(answered with HTTP 401), close. Times: TCP connect, TLS handshake, request.
+api.notion.com is 208.103.161.17 (DNS 0.265 s)
+
+Fresh start 1 of 3: nothing stored
+  key pair made before connecting: 1.548 s
+  page 1  TCP 0.086 s, handshake 6.820 s, HTTP 401 in 0.348 s
+          crypto: P-256 x2 (plain) 4.647 s, X25519 1.289 s, rest 0.884 s
+          after the page: tables 1.807 s, next key pair 1.131 s
+  page 2  TCP 0.066 s, handshake 0.487 s (resumed), HTTP 401 in 0.324 s
+
+Fresh start 2 of 3: nothing stored
+  key pair made before connecting: 1.368 s
+  page 1  TCP 0.069 s, handshake 6.974 s, HTTP 401 in 0.296 s
+          crypto: P-256 x2 (plain) 4.745 s, X25519 1.130 s, rest 1.098 s
+          after the page: tables 1.809 s, next key pair 1.130 s
+  page 2  TCP 0.064 s, handshake 0.453 s (resumed), HTTP 401 in 0.323 s
+
+Fresh start 3 of 3: nothing stored
+  key pair made before connecting: 1.372 s
+  page 1  TCP 0.062 s, handshake 6.811 s, HTTP 401 in 0.326 s
+          crypto: P-256 x2 (plain) 4.449 s, X25519 1.133 s, rest 1.228 s
+          after the page: tables 2.126 s, next key pair 1.137 s
+  page 2  TCP 0.065 s, handshake 0.470 s (resumed), HTTP 401 in 0.313 s
+
+Ticket refused or expired: certificate check remembered, tables built
+  cold    TCP 0.339 s, handshake 3.389 s, HTTP 401 in 0.306 s
+          crypto: P-256 x1 (Straus) 1.353 s, 1 check remembered, X25519 1.128 s, rest 0.909 s
+          after the page: next key pair 1.333 s
+  cold    TCP 0.059 s, handshake 3.352 s, HTTP 401 in 0.311 s
+          crypto: P-256 x1 (Straus) 1.332 s, 1 check remembered, X25519 1.132 s, rest 0.888 s
+          after the page: next key pair 1.661 s
+  cold    TCP 0.115 s, handshake 3.344 s, HTTP 401 in 0.305 s
+          crypto: P-256 x1 (Straus) 1.355 s, 1 check remembered, X25519 1.132 s, rest 0.858 s
+          after the page: next key pair 1.331 s
+
+Resumed with a session ticket
+  resumed TCP 0.074 s, handshake 0.510 s (resumed), HTTP 401 in 0.323 s
+  resumed TCP 0.071 s, handshake 0.452 s (resumed), HTTP 401 in 0.341 s
+  resumed TCP 0.074 s, handshake 0.503 s (resumed), HTTP 401 in 0.922 s
+
+LIVE, COMPARE SERVERS (today's engine)
+The same two pages to Notion, to Anthropic (Claude 68's server) and to Google.
+Anthropic and Google are only timed, without the certificate check. Notion and
+Anthropic are behind Cloudflare, whose TCP window scale Open Transport 1.3
+misreads: without OT Window Fix they wait about 3 s after the Mac's last
+handshake message, and about 4 s for a resumed page's answer. Each takes turns,
+3 times; the first shows the timeline.
+
+api.notion.com (Cloudflare) (1 of 3)
+  key pair made before connecting: 1.383 s
+  page 1  TCP 0.336 s, handshake 7.323 s, HTTP 401 in 0.328 s
+          crypto: P-256 x2 (plain) 4.950 s, X25519 1.140 s, rest 1.232 s
+          timeline, from the start of the handshake:
+            0.021 s  sent 143 bytes
+            0.034 s  got 2680 bytes in 8 reads, first after 0.285 s, 0.328 s waiting in all
+            6.694 s  sent 42 bytes
+            6.977 s  sent 6 bytes
+            7.043 s  sent 37 bytes
+            7.058 s  got 234 bytes in 6 reads, first after 0.180 s, 0.207 s waiting in all
+            7.323 s  handshake done
+            7.332 s  sent 118 bytes
+            7.345 s  got 1228 bytes in 2 reads, first after 0.245 s, 0.252 s waiting in all
+          after the page: tables 1.578 s, next key pair 1.173 s
+  page 2  TCP 0.080 s, handshake 0.457 s (resumed), HTTP 401 in 1.100 s
+          timeline, from the start of the handshake:
+            0.045 s  sent 351 bytes
+            0.056 s  got 135 bytes in 6 reads, first after 0.041 s, 0.068 s waiting in all
+            0.384 s  sent 6 bytes
+            0.445 s  sent 37 bytes
+            0.457 s  handshake done
+            0.471 s  sent 118 bytes
+            0.482 s  got 1229 bytes in 2 reads, first after 1.012 s, 1.019 s waiting in all
+
+api.anthropic.com (Cloudflare) (1 of 3)
+  key pair made before connecting: 1.261 s
+  page 1  TCP 0.175 s, handshake 4.394 s, HTTP 401 in 0.267 s
+          crypto: P-256 x1 (plain) 2.233 s, X25519 1.125 s, rest 1.036 s
+          timeline, from the start of the handshake:
+            0.024 s  sent 146 bytes
+            0.037 s  got 2682 bytes in 8 reads, first after 0.065 s, 0.107 s waiting in all
+            3.704 s  sent 42 bytes
+            3.985 s  sent 6 bytes
+            4.047 s  sent 37 bytes
+            4.057 s  got 234 bytes in 6 reads, first after 0.253 s, 0.281 s waiting in all
+            4.394 s  handshake done
+            4.402 s  sent 119 bytes
+            4.418 s  got 705 bytes in 4 reads, first after 0.187 s, 0.203 s waiting in all
+          after the page: tables 1.571 s, next key pair 1.133 s
+  page 2  TCP 0.061 s, handshake 0.454 s (resumed), HTTP 401 in 0.248 s
+          timeline, from the start of the handshake:
+            0.047 s  sent 354 bytes
+            0.062 s  got 135 bytes in 6 reads, first after 0.030 s, 0.057 s waiting in all
+            0.378 s  sent 6 bytes
+            0.441 s  sent 37 bytes
+            0.454 s  handshake done
+            0.463 s  sent 119 bytes
+            0.475 s  got 665 bytes in 4 reads, first after 0.172 s, 0.189 s waiting in all
+
+www.google.com (1 of 3)
+  key pair made before connecting: 1.395 s
+  page 1  TCP 0.081 s, handshake 4.359 s, HTTP 204 in 0.088 s
+          crypto: P-256 x1 (plain) 2.154 s, X25519 1.129 s, rest 1.076 s
+          timeline, from the start of the handshake:
+            0.023 s  sent 143 bytes
+            0.040 s  got 2669 bytes in 8 reads, first after 0.067 s, 0.103 s waiting in all
+            3.631 s  sent 42 bytes
+            3.912 s  sent 6 bytes
+            3.974 s  sent 37 bytes
+            3.984 s  got 282 bytes in 6 reads, first after 0.288 s, 0.321 s waiting in all
+            4.359 s  handshake done
+            4.366 s  sent 119 bytes
+            4.376 s  got 224 bytes in 2 reads, first after 0.051 s, 0.058 s waiting in all
+          after the page: tables 1.576 s, next key pair 1.138 s
+  page 2  TCP 0.106 s, handshake 0.479 s (resumed), HTTP 204 in 0.282 s
+          timeline, from the start of the handshake:
+            0.058 s  sent 399 bytes
+            0.070 s  got 135 bytes in 6 reads, first after 0.068 s, 0.092 s waiting in all
+            0.411 s  sent 6 bytes
+            0.473 s  sent 37 bytes
+            0.479 s  handshake done
+            0.487 s  sent 119 bytes
+            0.490 s  got 224 bytes in 2 reads, first after 0.253 s, 0.257 s waiting in all
+
+api.notion.com (Cloudflare) (2 of 3)
+  key pair made before connecting: 1.131 s
+  page 1  TCP 0.068 s, handshake 6.743 s, HTTP 401 in 1.048 s
+          crypto: P-256 x2 (plain) 4.512 s, X25519 1.129 s, rest 1.102 s
+          after the page: tables 1.799 s, next key pair 1.128 s
+  page 2  TCP 0.309 s, handshake 0.474 s (resumed), HTTP 401 in 0.300 s
+
+api.anthropic.com (Cloudflare) (2 of 3)
+  key pair made before connecting: 1.374 s
+  page 1  TCP 0.088 s, handshake 4.415 s, HTTP 401 in 0.251 s
+          crypto: P-256 x1 (plain) 2.263 s, X25519 1.128 s, rest 1.023 s
+          after the page: tables 1.797 s, next key pair 1.136 s
+  page 2  TCP 0.084 s, handshake 0.470 s (resumed), HTTP 401 in 0.232 s
+
+www.google.com (2 of 3)
+  key pair made before connecting: 1.375 s
+  page 1  TCP 0.058 s, handshake 4.324 s, HTTP 204 in 0.085 s
+          crypto: P-256 x1 (plain) 2.171 s, X25519 1.130 s, rest 1.023 s
+          after the page: tables 1.796 s, next key pair 1.129 s
+  page 2  TCP 0.063 s, handshake 0.675 s (resumed), HTTP 204 in 0.218 s
+
+api.notion.com (Cloudflare) (3 of 3)
+  key pair made before connecting: 1.632 s
+  page 1  TCP 0.077 s, handshake 6.771 s, HTTP 401 in 0.307 s
+          crypto: P-256 x2 (plain) 4.529 s, X25519 1.131 s, rest 1.111 s
+          after the page: tables 1.800 s, next key pair 1.132 s
+  page 2  TCP 0.068 s, handshake 0.451 s (resumed), HTTP 401 in 0.414 s
+
+api.anthropic.com (Cloudflare) (3 of 3)
+  key pair made before connecting: 1.394 s
+  page 1  TCP 0.098 s, handshake 4.549 s, HTTP 401 in 0.239 s
+          crypto: P-256 x1 (plain) 2.259 s, X25519 1.271 s, rest 1.019 s
+          after the page: tables 1.795 s, next key pair 1.130 s
+  page 2  TCP 0.064 s, handshake 0.461 s (resumed), HTTP 401 in 0.273 s
+
+www.google.com (3 of 3)
+  key pair made before connecting: 1.453 s
+  page 1  TCP 0.073 s, handshake 4.338 s, HTTP 204 in 0.087 s
+          crypto: P-256 x1 (plain) 2.169 s, X25519 1.127 s, rest 1.042 s
+          after the page: tables 1.799 s, next key pair 1.132 s
+  page 2  TCP 0.072 s, handshake 0.467 s (resumed), HTTP 204 in 0.108 s
+
+SUMMARY: average wait for the server, pages that worked
+Page 1: after the Mac's last handshake message, and after the request.
+Page 2 (resumed): after the request.
+                                              p1 hs      p1 req     p2 req   
+  api.notion.com (Cloudflare)                 0.234 s    0.475 s    0.523 s  
+  api.anthropic.com (Cloudflare)              0.183 s    0.163 s    0.166 s  
+  www.google.com                              0.199 s    0.047 s    0.169 s  
+
+LIVE, EACH ROW OF THE CHARTS (oldest first; each adds one method)
+One page = connect to api.notion.com, handshake, GET /v1/users/me without a token
+(answered with HTTP 401), close. Times: TCP connect, TLS handshake, request.
+A failed page still shows how long the handshake took and what it spent on crypto.
+Page 2 is skipped when nothing from page 1 could make it different.
+
+1. Stock mbedTLS
+  page 1  FAILED: handshake after 48.144 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (mbedTLS) 15.810 s, P-384 16.404 s, key pair 7.387 s, X25519 7.769 s, rest 0.774 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+2. + micro-ecc for P-256 (C, -Os)
+  page 1  FAILED: handshake after 44.813 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.447 s, P-384 16.146 s, key pair 7.312 s, X25519 7.144 s, rest 0.766 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+3. + WE1 pinned: no P-384 check
+  page 1  FAILED: handshake after 28.239 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.334 s, key pair 6.856 s, X25519 7.329 s, rest 0.719 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+4. + key pair made before connecting
+  key pair made before connecting: 6.257 s
+  page 1  FAILED: handshake after 21.949 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.268 s, X25519 7.752 s, rest 0.930 s
+          after the page: next key pair 6.637 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+5. + 64 KB memory pool
+  key pair made before connecting: 4.873 s
+  page 1  FAILED: handshake after 18.614 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.058 s, X25519 4.850 s, rest 0.706 s
+          after the page: next key pair 4.791 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+6. + signature checks remembered
+  key pair made before connecting: 4.612 s
+  page 1  FAILED: handshake after 19.442 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.677 s, X25519 4.967 s, rest 0.799 s
+          after the page: next key pair 4.527 s
+  page 2  TCP 0.062 s, handshake 13.133 s, HTTP 401 in 1.055 s
+          crypto: P-256 x1 (plain) 7.271 s, 1 check remembered, X25519 4.648 s, rest 1.214 s
+          after the page: next key pair 4.570 s
+
+7. + X25519 in C (donna)
+  key pair made before connecting: 1.835 s
+  page 1  FAILED: handshake after 15.624 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.085 s, X25519 1.803 s, rest 0.736 s
+          after the page: next key pair 2.208 s
+  page 2  TCP 0.087 s, handshake 9.645 s, HTTP 401 in 0.702 s
+          crypto: P-256 x1 (plain) 6.650 s, 1 check remembered, X25519 1.938 s, rest 1.057 s
+          after the page: next key pair 1.883 s
+
+8. + wNAF tables
+  key pair made before connecting: 1.688 s
+  page 1  FAILED: handshake after 15.896 s, error -0x7280 the connection closed
+          crypto: P-256 x2 (plain) 13.359 s, X25519 1.809 s, rest 0.728 s
+          after the page: tables 1.034 s, next key pair 1.688 s
+  page 2  TCP 0.068 s, handshake 8.093 s, HTTP 401 in 0.359 s
+          crypto: P-256 x1 (wNAF) 5.236 s, 1 check remembered, X25519 1.688 s, rest 1.170 s
+          after the page: next key pair 1.880 s
+
+9. + -O3 for the curve code
+  key pair made before connecting: 2.002 s
+  page 1  TCP 0.105 s, handshake 11.825 s, HTTP 401 in 0.452 s
+          crypto: P-256 x2 (plain) 8.767 s, X25519 1.994 s, rest 1.065 s
+          after the page: tables 0.780 s, next key pair 1.691 s
+  page 2  TCP 0.071 s, handshake 6.511 s, HTTP 401 in 0.683 s
+          crypto: P-256 x1 (wNAF) 3.696 s, 1 check remembered, X25519 1.758 s, rest 1.057 s
+          after the page: next key pair 1.882 s
+
+10. + unrolled assembly multiply
+  key pair made before connecting: 1.696 s
+  page 1  TCP 0.084 s, handshake 9.619 s, HTTP 401 in 0.340 s
+          crypto: P-256 x2 (plain) 7.013 s, X25519 1.686 s, rest 0.920 s
+          after the page: tables 0.763 s, next key pair 1.687 s
+  page 2  TCP 0.064 s, handshake 5.820 s, HTTP 401 in 1.066 s
+          crypto: P-256 x1 (wNAF) 2.741 s, 1 check remembered, X25519 1.996 s, rest 1.083 s
+          after the page: next key pair 1.936 s
+
+11. + session tickets
+  key pair made before connecting: 1.689 s
+  page 1  TCP 0.059 s, handshake 9.477 s, HTTP 401 in 0.356 s
+          crypto: P-256 x2 (plain) 6.862 s, X25519 1.687 s, rest 0.929 s
+          after the page: tables 0.801 s, next key pair 2.098 s
+  page 2  TCP 0.066 s, handshake 0.454 s (resumed), HTTP 401 in 0.315 s
+
+12. + Comba and Solinas assembly
+  key pair made before connecting: 1.921 s
+  page 1  TCP 0.307 s, handshake 7.226 s, HTTP 401 in 0.302 s
+          crypto: P-256 x2 (plain) 4.438 s, X25519 1.695 s, rest 1.093 s
+          after the page: tables 0.754 s, next key pair 1.688 s
+  page 2  TCP 0.072 s, handshake 0.466 s (resumed), HTTP 401 in 0.379 s
+
+13. + Straus verify
+  key pair made before connecting: 1.929 s
+  page 1  TCP 0.092 s, handshake 7.273 s, HTTP 401 in 0.340 s
+          crypto: P-256 x2 (plain) 4.508 s, X25519 1.688 s, rest 1.078 s
+          after the page: tables 1.793 s, next key pair 1.684 s
+  page 2  TCP 0.311 s, handshake 0.450 s (resumed), HTTP 401 in 0.328 s
+
+14. + X25519 on Comba (today)
+  key pair made before connecting: 1.362 s
+  page 1  TCP 0.059 s, handshake 7.070 s, HTTP 401 in 0.886 s
+          crypto: P-256 x2 (plain) 4.870 s, X25519 1.130 s, rest 1.070 s
+          after the page: tables 1.796 s, next key pair 1.128 s
+  page 2  TCP 0.084 s, handshake 0.453 s (resumed), HTTP 401 in 0.326 s
+
+SUMMARY: handshake time per row
+                                        page 1              page 2            
+   1 Stock mbedTLS                      FAILED 48.144 s     -                 
+   2 + micro-ecc for P-256 (C, -Os)     FAILED 44.813 s     -                 
+   3 + WE1 pinned: no P-384 check       FAILED 28.239 s     -                 
+   4 + key pair made before connecting  FAILED 21.949 s     -                 
+   5 + 64 KB memory pool                FAILED 18.614 s     -                 
+   6 + signature checks remembered      FAILED 19.442 s     13.133 s          
+   7 + X25519 in C (donna)              FAILED 15.624 s     9.645 s           
+   8 + wNAF tables                      FAILED 15.896 s     8.093 s           
+   9 + -O3 for the curve code           11.825 s            6.511 s           
+  10 + unrolled assembly multiply       9.619 s             5.820 s           
+  11 + session tickets                  9.477 s             0.454 s           
+  12 + Comba and Solinas assembly       7.226 s             0.466 s           
+  13 + Straus verify                    7.273 s             0.450 s           
+  14 + X25519 on Comba (today)          7.070 s             0.453 s           
+
+Done.

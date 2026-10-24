@@ -1,0 +1,115 @@
+==== Speed Test, 2026-10-20 15:07 (build Oct 20 2026 15:01:40)
+Mac: Macintosh SE/30, 68030, 68882, System 7.5.5, 8 MB, free memory 1585 KB
+Network: Open Transport 1.3, Open Transport Bug Patcher: yes (no TCP window scaling offered)
+
+LIVE, EACH ROW OF THE CHARTS, AGAINST THE TEST SERVER (grouped by kind)
+The test server (tools/lab_server.py, 192.168.1.248 port 4433) plays api.notion.com: the
+same cipher, a certificate chain of the same shape, session tickets, an HTTP 401
+of the same size, but no 15 s limit, so every page can finish.
+Page 2 is skipped when nothing from page 1 could make it different.
+api.notion.com is 208.103.161.17 (DNS 0.379 s)
+
+1. Stock mbedTLS
+  page 1  TCP 0.139 s, handshake 48.798 s, HTTP 401 in 0.163 s
+          crypto: P-256 x2 (mbedTLS) 16.259 s, P-384 16.262 s, key pair 7.320 s, X25519 7.767 s, rest 1.189 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+2. + micro-ecc for P-256 (C, -Os)
+  page 1  TCP 0.172 s, handshake 45.952 s, HTTP 401 in 0.227 s
+          crypto: P-256 x2 (plain) 14.100 s, P-384 15.706 s, key pair 7.625 s, X25519 7.420 s, rest 1.101 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+3. + -O3 for the curve code
+  page 1  TCP 0.077 s, handshake 40.924 s, HTTP 401 in 0.353 s
+          crypto: P-256 x2 (plain) 9.008 s, P-384 16.236 s, key pair 7.376 s, X25519 7.251 s, rest 1.053 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+4. + unrolled assembly multiply
+  page 1  TCP 0.637 s, handshake 39.596 s, HTTP 401 in 0.179 s
+          crypto: P-256 x2 (plain) 7.203 s, P-384 16.224 s, key pair 7.532 s, X25519 7.584 s, rest 1.053 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+5. + Comba and Solinas assembly
+  page 1  TCP 0.129 s, handshake 35.970 s, HTTP 401 in 0.749 s
+          crypto: P-256 x2 (plain) 4.295 s, P-384 15.824 s, key pair 7.605 s, X25519 7.187 s, rest 1.059 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+6. + 64 KB memory pool
+  page 1  TCP 0.103 s, handshake 30.053 s, HTTP 401 in 0.222 s
+          crypto: P-256 x2 (plain) 4.747 s, P-384 14.632 s, key pair 4.624 s, X25519 4.828 s, rest 1.222 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+7. + X25519 in C (donna)
+  page 1  TCP 0.302 s, handshake 23.524 s, HTTP 401 in 0.181 s
+          crypto: P-256 x2 (plain) 4.955 s, P-384 14.041 s, key pair 1.691 s, X25519 1.730 s, rest 1.108 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+8. + X25519 on Comba (today)
+  page 1  TCP 0.078 s, handshake 21.892 s, HTTP 401 in 0.143 s
+          crypto: P-256 x2 (plain) 4.261 s, P-384 14.316 s, key pair 1.134 s, X25519 1.125 s, rest 1.056 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+9. + WE1 pinned: no P-384 check
+  page 1  TCP 0.079 s, handshake 7.866 s, HTTP 401 in 0.291 s
+          crypto: P-256 x2 (plain) 4.583 s, key pair 1.132 s, X25519 1.132 s, rest 1.019 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+10. + key pair made before connecting
+  key pair made before connecting: 1.291 s
+  page 1  TCP 0.065 s, handshake 6.774 s, HTTP 401 in 0.152 s
+          crypto: P-256 x2 (plain) 4.613 s, X25519 1.133 s, rest 1.028 s
+          after the page: next key pair 1.350 s
+  page 2  skipped: nothing stored, so it would repeat page 1
+
+11. + signature checks remembered
+  key pair made before connecting: 1.133 s
+  page 1  TCP 0.063 s, handshake 6.777 s, HTTP 401 in 0.238 s
+          crypto: P-256 x2 (plain) 4.499 s, X25519 1.256 s, rest 1.022 s
+          after the page: next key pair 1.357 s
+  page 2  TCP 0.062 s, handshake 4.390 s, HTTP 401 in 0.400 s
+          crypto: P-256 x1 (plain) 2.227 s, 1 check remembered, X25519 1.132 s, rest 1.031 s
+          after the page: next key pair 1.328 s
+
+12. + wNAF tables
+  key pair made before connecting: 1.132 s
+  page 1  TCP 0.114 s, handshake 6.760 s, HTTP 401 in 0.155 s
+          crypto: P-256 x2 (plain) 4.584 s, X25519 1.139 s, rest 1.037 s
+          after the page: tables 0.764 s, next key pair 1.130 s
+  page 2  TCP 0.144 s, handshake 4.375 s, HTTP 401 in 0.132 s
+          crypto: P-256 x1 (wNAF) 1.892 s, 1 check remembered, X25519 1.450 s, rest 1.034 s
+          after the page: next key pair 1.332 s
+
+13. + Straus verify
+  key pair made before connecting: 1.134 s
+  page 1  TCP 0.179 s, handshake 6.943 s, HTTP 401 in 0.176 s
+          crypto: P-256 x2 (plain) 4.638 s, X25519 1.262 s, rest 1.043 s
+          after the page: tables 1.995 s, next key pair 1.129 s
+  page 2  TCP 0.141 s, handshake 3.501 s, HTTP 401 in 0.358 s
+          crypto: P-256 x1 (Straus) 1.355 s, 1 check remembered, X25519 1.126 s, rest 1.020 s
+          after the page: next key pair 1.334 s
+
+14. + session tickets
+  key pair made before connecting: 1.131 s
+  page 1  TCP 0.132 s, handshake 6.585 s, HTTP 401 in 0.426 s
+          crypto: P-256 x2 (plain) 4.218 s, X25519 1.333 s, rest 1.034 s
+          after the page: tables 1.802 s, next key pair 1.132 s
+  page 2  TCP 0.183 s, handshake 0.467 s (resumed), HTTP 401 in 0.130 s
+
+SUMMARY: handshake time per row
+                                        page 1              page 2            
+   1 Stock mbedTLS                      48.798 s            -                 
+   2 + micro-ecc for P-256 (C, -Os)     45.952 s            -                 
+   3 + -O3 for the curve code           40.924 s            -                 
+   4 + unrolled assembly multiply       39.596 s            -                 
+   5 + Comba and Solinas assembly       35.970 s            -                 
+   6 + 64 KB memory pool                30.053 s            -                 
+   7 + X25519 in C (donna)              23.524 s            -                 
+   8 + X25519 on Comba (today)          21.892 s            -                 
+   9 + WE1 pinned: no P-384 check       7.866 s             -                 
+  10 + key pair made before connecting  6.774 s             -                 
+  11 + signature checks remembered      6.777 s             4.390 s           
+  12 + wNAF tables                      6.760 s             4.375 s           
+  13 + Straus verify                    6.943 s             3.501 s           
+  14 + session tickets                  6.585 s             0.467 s           
+
+Done.

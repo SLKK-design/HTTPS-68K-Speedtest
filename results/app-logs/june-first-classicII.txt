@@ -1,0 +1,106 @@
+1971K    0.0s build       Jun 11 2026 16:48:42
+1971K    0.0s start       blocks=175
+1971K    0.1s pid-bLS     d=33343630 s=00000000
+1971K    0.2s pid-aLS     d=33343630 s=00000000
+1971K    0.3s start       after LoadSettings
+1971K    0.4s pid-aN      d=33343630 s=00000000
+1971K    0.4s start       after LoadNav
+1971K    0.5s pid-aR      d=33343630 s=00000000
+1971K    0.6s start       after LoadRecent
+1971K    0.7s pid-aFW     d=33343630 s=00000000
+1971K    0.8s start       after LoadFullWidth
+1971K    0.9s pageID      /v1/pages/<page-id>
+1971K    1.0s pid-pre1    d=33343630 s=00000000
+1971K    1.1s WarmUp      entry
+1971K    1.2s SslConnect  start
+1971K    1.4s SslInitCont entropy+certs
+1968K    1.6s shamir2     skip-no-slot
+1934K    3.9s TcpConnect  async open
+1934K    4.7s SslHandshak mbedtls handshake
+1934K    4.9s pid-hs-pre  d=33343630 s=00000000
+1929K    5.7s ecdsa       p256-start
+1929K    8.9s ecdsa       p256-ok
+1929K    9.2s ecdsa       p256-start
+1929K   12.1s ecdsa       p256-ok
+1929K   12.2s donna       start
+1929K   14.2s donna       end
+1930K   18.1s pid-hs-pst  d=33343630 s=00000000
+1930K   18.5s SslHandshak ok ticks=780
+1930K   18.8s SslHandshak TLS-ECDHE-ECDSA-WITH-CHACHA20-POLY1305-SHA256
+1930K   19.1s SslRequest  ssl_write
+1930K   19.4s SslResponse ssl_read loop
+1930K   20.0s on_status   HTTP 302
+1930K   20.3s on_hdrs_don headers parsed
+1930K   20.7s on_body     first chunk
+1930K   20.9s on_msg_comp parse done
+1930K   21.2s WarmUp      served ping ok
+1928K   21.7s WarmUp      session saved to disk
+1928K   23.7s WarmUp      x25519 replenished
+1928K   23.9s WarmUp      idle ok
+1928K   24.1s pid-pre-rq  d=33343630 s=00000000
+1928K   24.4s start       before pageRequest
+1928K   24.6s pageRequest req=0
+1928K   24.9s Get         api.notion.com
+1927K   25.1s Request     /v1/pages/<page-id>
+1927K   25.3s InitThread  https
+1927K   25.6s HttpsReques start
+1927K   25.8s SslConnect  start
+1927K   26.0s SslRequest  ssl_write
+1927K   26.3s SslResponse ssl_read loop
+1927K   27.2s on_status   HTTP 200
+1926K   27.5s on_hdrs_don headers parsed
+1926K   27.9s on_body     first chunk
+1926K   28.2s on_msg_comp parse done
+1926K   29.9s shamir2     mid-calc
+1926K   30.9s shamir2     ready
+1926K   31.1s OnGetRespon HTTP 200 ok=1 
+1922K   31.3s jsonParse   json 933 bytes
+1926K   33.1s pageRequest req=1
+1926K   33.3s Get         api.notion.com
+1925K   33.6s Request     /v1/blocks/<page-id>/children?
+1925K   33.8s InitThread  https
+1925K   34.0s HttpsReques start
+1925K   34.3s SslConnect  start
+1925K   34.5s SslRequest  ssl_write
+1925K   34.8s SslResponse ssl_read loop
+1925K   36.6s on_status   HTTP 200
+1925K   36.9s on_hdrs_don headers parsed
+1925K   37.3s on_body     first chunk
+1893K   39.7s on_msg_comp parse done
+1893K   40.0s OnGetRespon HTTP 200 ok=1 
+1869K   40.8s jsonParse   json 29545 bytes
+1925K   41.3s pageRequest done 30 blocks
+1882K   43.6s pageCache   saved slot=0 5159B 30blk
+1915K   53.8s reloadPage  start
+1915K   54.2s unloadPage  start
+1926K   54.6s pageCache   bypassed (Reload)
+1925K   55.2s pageRequest req=0
+1925K   55.4s Get         api.notion.com
+1924K   55.6s Request     /v1/pages/<page-id>
+1924K   55.9s InitThread  https
+1924K   56.1s HttpsReques start
+1924K   56.3s SslConnect  start
+1924K   56.6s SslRequest  ssl_write
+1924K   56.9s SslResponse ssl_read loop
+1924K   57.7s on_status   HTTP 200
+1923K   58.1s on_hdrs_don headers parsed
+1923K   58.4s on_body     first chunk
+1923K   58.7s on_msg_comp parse done
+1923K   59.0s OnGetRespon HTTP 200 ok=1 
+1919K   59.3s jsonParse   json 933 bytes
+1924K   59.7s pageRequest req=1
+1924K   60.0s Get         api.notion.com
+1924K   60.2s Request     /v1/blocks/<page-id>/children?
+1924K   60.5s InitThread  https
+1924K   60.7s HttpsReques start
+1924K   60.9s SslConnect  start
+1924K   61.2s SslRequest  ssl_write
+1924K   61.5s SslResponse ssl_read loop
+1924K   63.0s on_status   HTTP 200
+1924K   63.4s on_hdrs_don headers parsed
+1924K   63.7s on_body     first chunk
+1892K   65.8s on_msg_comp parse done
+1892K   66.0s OnGetRespon HTTP 200 ok=1 
+1868K   66.8s jsonParse   json 29545 bytes
+1924K   67.3s pageRequest done 30 blocks
+1881K   69.3s pageCache   saved slot=0 5159B 30blk
