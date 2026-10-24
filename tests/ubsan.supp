@@ -1,0 +1,7 @@
+# curve25519-donna (the reference X25519) and its generated model shift
+# negative limbs and let 64-bit sums wrap on the test's random inputs, as
+# donna does upstream. Only those two files; the app's own code is checked.
+shift-base:unused_curve25519_donna.c
+shift-base:donna_fused_model.c
+signed-integer-overflow:unused_curve25519_donna.c
+signed-integer-overflow:donna_fused_model.c
