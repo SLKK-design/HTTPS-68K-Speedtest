@@ -17,5 +17,6 @@ tools/lab/*.key
 # Claude
 .claude/
 
-# macOS
+# macOS, Python
 .DS_Store
+__pycache__/
