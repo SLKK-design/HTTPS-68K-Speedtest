@@ -1,6 +1,8 @@
 # Open Transport Bug Patcher
 
-A small Mac app that fixes a TCP bug in Open Transport 1.3 on 68K Macs. Every connection to a server behind Cloudflare loses about 3 seconds, and everything the Mac sends to it crawls out 16 bytes at a time. Notion and Anthropic are both behind Cloudflare, so Notion Classic and Claude 68 are both hit.
+A small Mac app that fixes a TCP bug in Open Transport 1.3 on 68K Macs. Every connection to a server behind Cloudflare loses 3 to 4 seconds, and everything the Mac sends to it crawls out 16 bytes at a time. Notion and Anthropic are both behind Cloudflare, so Notion Classic and Claude 68 are both hit.
+
+![Open Transport Bug Patcher, ready to patch](../docs/img/Patcher.png)
 
 ## The bug
 
@@ -19,13 +21,13 @@ Measured on a Mac SE/30 (16 MHz 68030, System 7.5.5, Open Transport 1.3, BlueSCS
 | | Before | After |
 |---|---|---|
 | Wait after the Mac's last handshake message | 3.13 s | 0.15 s |
-| First page, TLS handshake | 9.1–10.1 s | 6.4–7.0 s |
+| First page, TLS handshake | 9.3–9.5 s | 6.8–7.0 s |
 | Next page (resumed), wait for the answer | 4.30 s | 0.22 s |
 | Next page, in all | about 4.7 s | about 0.8 s |
 
 ## Using it
 
-1. Download it from the [latest release](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest), as [StuffIt](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.sit) for the Mac itself or as a [zip](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.zip) for a modern Mac, and copy it to the Mac. No need to build it yourself; if you want to, see Building below.
+1. <a href="https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.sit"><img src="../docs/img/Patch-icon.png" width="32" align="center" alt="OpenTransportBugPatcher.sit"></a> Download [OpenTransportBugPatcher.sit](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.sit) (StuffIt, for the Mac itself) or [OpenTransportBugPatcher.zip](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.zip).
 2. Open it. It finds Open Tpt Inet 68K Library in the Extensions folder, or asks you to choose it.
 3. Click **Patch**, then **Restart**. Open Transport reads the library at startup.
 
