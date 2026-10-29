@@ -18,7 +18,7 @@
 
 A 16 MHz 68030, the chip in a 1989 Macintosh SE/30, was never meant to do a modern elliptic-curve TLS handshake. With stock mbedTLS the math takes **49 s** on the SE/30 and **73 s** on a Classic II, and Cloudflare hangs up after about 15. Yet the Mac now makes a real TLS 1.2 connection straight to `api.notion.com` or `api.anthropic.com`, certificate checked, with no proxy and no modern computer doing the math.
 
-Nine changes did it. Three make the math faster: micro-ecc, an interleaved double-scalar multiply and custom 68020 assembly. Four do less work: session tickets, state saved to disk, the key pair made ahead of time and a pinned intermediate certificate. One is a set of correctness fixes. And one is a 2-byte patch to Open Transport 1.3, which misread Cloudflare's TCP window. Today a first connection takes **about 7 s** on the SE/30 and **9 s** on the Classic II, and a resumed one **under a second**.
+Nine changes did it. Three make the math faster: micro-ecc, an interleaved double-scalar multiply and custom 68020 assembly. Three do less work: session tickets, state saved to disk and a pinned intermediate certificate. One cuts the waiting: the key pair is made ahead of time, while the Mac waits for the network. One is a set of correctness fixes. And one is a 2-byte patch to Open Transport 1.3, which misread Cloudflare's TCP window. Today a first connection takes **about 7 s** on the SE/30 and **9 s** on the Classic II, and a resumed one **under a second**.
 
 ---
 
@@ -95,7 +95,7 @@ The server's limit is about 15 s for the whole handshake. It isn't published, bu
 
 *Table 1. The two clients on the shared engine.*
 
-The engine carries no hostnames; SNI comes from the request URI. Behind a different CA chain, only the pinned certificates in `RootCert.cpp` change. RSA-signed certificates still work through mbedTLS's own RSA path, which is cheap on a 68k, and a server without session tickets just gets full handshakes.
+The engine carries no hostnames; SNI comes from the request URI. Behind a different CA chain, only the pinned certificates in `RootCert.cpp` change. RSA-signed certificates still work through mbedTLS's own RSA path, which is cheap on a 68k, and a server without session tickets just gets full handshakes. [MacPlayer](https://github.com/SLKK-design/MacPlayer), Anthony Super's Spotify remote, now runs on a copy of this engine against Spotify's RSA certificates.
 
 Each repo keeps its own copy of `src/core`, and Notion Classic's [`scripts/diff_core.sh`](https://github.com/SLKK-design/NotionClassic/blob/main/scripts/diff_core.sh) shows where they drift. The crypto and handshake code is identical. What differs: the auth headers, Claude 68's streaming, how long a response may stay silent (60 s for Claude's slow first token, 30 s for Notion), and where the persistence code lives ([`tls_cache.h`](https://github.com/SLKK-design/Claude68/blob/main/src/core/helpers/tls_cache.h) in Claude 68, [`crypto_persist.h`](https://github.com/SLKK-design/NotionClassic/blob/main/src/core/net/crypto_persist.h) in Notion Classic).
 
@@ -103,7 +103,7 @@ Each repo keeps its own copy of `src/core`, and Notion Classic's [`scripts/diff_
 
 ## 3. Nine changes
 
-Grouped by kind, not size: faster math (Sections 3.1–3.3), less work (3.4–3.7), correctness (3.8) and a network bug (3.9). On a first connection the biggest single saving is the trust pin, which drops a 15–25 s P-384 check. On every connection after that, it's session tickets.
+Grouped by kind, not size: faster math (Sections 3.1–3.3), less work (3.4, 3.5 and 3.7), less waiting (3.6), correctness (3.8) and a network bug (3.9). On a first connection the biggest single saving is the trust pin, which drops a 15–25 s P-384 check. On every connection after that, it's session tickets.
 
 ### 3.1 Generic bignum is too slow
 
@@ -186,7 +186,7 @@ Within a session, a connection that's still `ESTABLISHED` and hasn't idled too l
 
 The two slots come from the first success on real hardware (SE/30, March 24, 2026), before tickets worked. One connection paid for the certificate check and died on the server's clock (`-29312` at 907 ticks, 15.1 s), and the next found the answer in the cache. That kept failing while the cache had one slot, because the second connection's own SKE check evicted the certificate result.
 
-Now a returning user's handshake takes under a second. With the on-disk page cache, a warm launch shows the page at once while the connection comes up behind it.
+Now a returning user's handshake takes under a second, and a relaunch shows the page's saved title and icon at once while the connection comes up behind it.
 
 ### 3.6 Compute and network took turns
 
@@ -310,9 +310,9 @@ From "never completes" to "HTTP 200", on the Classic II:
 
 Steps 0–6 come from the app's debug logs, March to June 2026, with the certificate check cached. Step 7 is Speed Test on October 19, 2026, timing the same kind of handshake: a refused ticket, check cached. The trust pin and the early key pair were in place from step 0. Saving state to disk isn't a step, because it doesn't change one handshake, only every one after it.
 
-![A page, then the next one, on both Macs as each change is added](performanceLesswork.png)
+![A page, then the next one, on both Macs as each change is added](img/Performance.png)
 
-*The same story in another order, measured by Speed Test against the test server: seconds for a first page and the next one on both Macs, as each change is added. Less work first, then faster math, then the Open Transport fix. The red line is Cloudflare's ~15 s.*
+*The same story in another order, measured by Speed Test: seconds for a first page and the next one on both Macs, as each change is added, with the crypto timed against the test server and the rest against api.notion.com. A page here is a handshake plus one small request. Less work first, then faster math, then the Open Transport fix. The dotted area is past Cloudflare's ~15 s.*
 
 ### 5.1 Two kinds of win
 
@@ -337,15 +337,27 @@ For the cryptography, a resumed handshake against a stock full one is apples and
 
 The honest summary: **about 4–7× from faster math, 7–8× on a whole first connection, and the rest from refusing to redo it.**
 
-### 5.2 End to end
+### 5.2 A whole page
+
+A Speed Test page is a handshake plus one small request. A whole page in Notion Classic needs more: a check that the connection works, then the page and its blocks, and reading the JSON and drawing it.
+
+![How the SE/30 opens a whole Notion page in Notion Classic: 17.5 s the first time, 7.5 s when returning, 3.3 s for the next page](img/notion-se30-page-load.png)
+
+*A 30-block Notion page (29 KB of JSON) on the SE/30, from Notion Classic's debug console with Open Transport patched. Every step gets its typical time from several runs. Each ▼ is a request; Notion's server takes about 0.2 s of it, and the rest is the Mac sending, receiving and decrypting.*
+
+Returning resumes with the saved ticket. Next page reuses the connection that's still open (Section 3.5), so unlike Speed Test's next page it has no handshake at all. Each request still takes about 0.6 s longer than in Speed Test, with the same engine, so there's time left to win there.
+
+Timed in one go, until the page is on screen:
 
 | | SE/30 | Classic II |
 |---|---|---|
-| Cold boot → rendered page | **~26–30 s** | — |
-| Refresh, 30-block page | **~7–8 s** | **~12–13 s** |
-| Warm launch (disk cache + saved ticket) | **instant** | **instant** |
+| First launch | **18.5 s** (handshake 6.5 s) | **25.4 s** (handshake 9.0 s) |
+| Relaunch | **12–13 s** (handshake 0.5 s) | **~12 s** (handshake 0.9 s) |
+| Refresh | **3.2 s** | **4.7 s** |
 
-*Table 4. Notion Classic, from the June 2026 debug logs, before the Open Transport fix.*
+*Table 4. Notion Classic, the same 30-block page, Open Transport patched.*
+
+A relaunch takes longer than the diagram's 7.5 s: it first draws the page's saved title and icon, and on the SE/30 it has so far always waited about 3 s longer for the blocks than the Classic II, for a reason I haven't found yet. Before the Open Transport fix, in June, a refresh of a 30-block page took 7–8 s on the SE/30 and 12–13 s on the Classic II.
 
 ### 5.3 Measured on real hardware
 
@@ -453,4 +465,4 @@ One ask. I've only measured two 16 MHz 68030s. If you have a 68k Mac on the netw
 
 ---
 
-*The shared `src/core/net` engine documented here powers two apps, [Notion Classic](https://classic.slkk.nl) and [Claude 68](https://github.com/SLKK-design/Claude68), both built by Lin van der Slikke with [Claude Code](https://claude.ai/code) and released under 0BSD. They stand on Retro68 (Wolfgang Thaller), micro-ecc (Kenneth MacKay), mbedTLS (ARM/Mbed), curve25519-donna (Adam Langley), and MacHTTP, MacTCPHelper & mbedtls-Mac-68k (antscode).*
+*The shared `src/core/net` engine documented here powers two apps, [Notion Classic](https://classic.slkk.nl) and [Claude 68](https://github.com/SLKK-design/Claude68), both built by Lin van der Slikke with [Claude Code](https://claude.ai/code) and released under 0BSD, and a copy of it brought back Anthony Super's [MacPlayer](https://github.com/SLKK-design/MacPlayer). They stand on Retro68 (Wolfgang Thaller), micro-ecc (Kenneth MacKay), mbedTLS (ARM/Mbed), curve25519-donna (Adam Langley), and MacHTTP, MacTCPHelper & mbedtls-Mac-68k (antscode).*

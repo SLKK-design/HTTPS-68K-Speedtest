@@ -17,7 +17,7 @@ Full runs (File > Run Everything) on two Macs, before and after patching Open Tr
 | 2026-10-20 SE30 test server less work.txt | same SE/30 | same, to the test server | 1.3, patched |
 | 2026-10-20 Classic II test server less work.txt | same Classic II | same, to the test server | 1.3, patched |
 
-Both Macs run System 7.5.5. "A page" is one request to api.notion.com without a token, which Notion answers with HTTP 401: the same TLS work as a real page, and nothing private is sent.
+Both Macs run System 7.5.5. "A page" is one request to api.notion.com without a token, which Notion answers with HTTP 401: the same handshake as a real page, and nothing private is sent.
 
 ## Today's engine, before and after
 
@@ -30,7 +30,7 @@ Both Macs run System 7.5.5. "A page" is one request to api.notion.com without a 
 
 ## The test-server runs
 
-The two "test server" files run the 14 chart rows against `tools/lab_server.py` on a computer next to the Macs (192.168.1.248) instead of api.notion.com.
+The two "test server" files run the 14 steps against `tools/lab_server.py` on a computer next to the Macs (192.168.1.248) instead of api.notion.com.
 
 The server plays Notion's part: the same cipher, a certificate chain of the same shape and session tickets. But it has no 15-second limit, so every page finished, including the old methods that Notion hangs up on. Their full first-page handshakes:
 
@@ -43,34 +43,41 @@ The server plays Notion's part: the same cipher, a certificate chain of the same
 | 11 tickets | 9.4 s | 15.3 s |
 | 14 today | 6.8 s | 8.9 s |
 
-The charts per Mac (`../tools/make_charts.py` draws `docs/performance-se30.svg` and `performance-classic-ii.svg`) take their steps from these runs. A page there is its measured crypto plus that Mac's median of everything else (connecting, the rest of the handshake, the request), so a network hiccup in one row doesn't count as a step. The ✕ marks come from the runs against the real api.notion.com.
-
-The SVG charts named below aren't kept in the repo: `tools/make_charts.py` draws them into `docs/` from these files. The finished chart, the one in the [deep-dive](../docs/modern-HTTPS-on-68k.md), is `docs/performanceLesswork.png`.
-
 ## The grouped runs
 
-The two "grouped" files (File > Live: Grouped Rows, Test Server) run the same 14 steps against the test server, in a different order. The steps are grouped by kind: faster P-256 math, faster X25519, less work on every page, and what the next page reuses. Each row still adds one step to everything above it, so these are new combinations, measured, not added up. `docs/performance-grouped.svg` is drawn from them.
-
-That chart builds each row from the operations its pages did, each the median of every row that ran it the same way. One X25519 on the SE/30 took 1.45 s instead of 1.13 s in row 12, for example, and would otherwise have hidden what wNAF saves there.
+The two "grouped" files (File > Live: Grouped Rows, Test Server) run the same 14 steps against the test server, in a different order. The steps are grouped by kind: faster P-256 math, faster X25519, less work on every page, and what the next page reuses. Each row still adds one step to everything above it, so these are new combinations, measured, not added up.
 
 ## The less-work-first runs
 
-The two "less work" files (File > Live: Less Work First, Test Server) run 12 of the steps in another order. First comes less work with stock math: WE1 pinned, the key pair made before connecting, checks remembered and session tickets. Then the math that's left gets faster: P-256, then X25519. `docs/performance-lesswork.svg` is drawn from them, the same way as the grouped chart.
+The two "less work" files (File > Live: Less Work First, Test Server) run 12 of the steps in another order. First comes less work with stock math: WE1 pinned, the key pair made before connecting, checks remembered and session tickets. Then the math that's left gets faster: P-256, then X25519.
+
+The chart in the README and the [deep dive](../docs/modern-HTTPS-on-68k.md), [`docs/img/Performance.png`](../docs/img/Performance.png), is drawn from them. Each row is built from the operations its pages did, each the median of every row that ran it the same way, so one slow X25519 can't hide what a step saves. To that comes the Mac's median of everything else (connecting, the rest of the handshake, the request) from the runs against api.notion.com: before the fix for every row, and with the fix for the last one. So a network hiccup in one row doesn't count as a step.
 
 wNAF tables and Straus aren't in this order: they need micro-ecc, and once tickets are in, the next page doesn't check a signature at all.
 
 ## The crypto-only runs
 
-The two "crypto" files (October 20) come from a build that adds three things to the crypto part:
+The two "crypto" files come from a build that adds three things to the crypto part:
 - the Comba multiply without the Solinas reduction
 - the 2-bit and 3-bit windows tried before wNAF, rebuilt because their March code wasn't kept
 - a 32 KB pool
 
-The head-to-head chart (`docs/performance-methods.svg`) takes its crypto groups from these runs.
-
 - **The windows** check about as fast as wNAF in C. On the SE/30 they're a little faster; on the Classic II, the 2-bit one is slower. What wNAF won was the table: the 3-bit window's 64 points take 3.2 s to build on the SE/30 and 3.8 s on the Classic II, against wNAF's 0.57 s and 0.75 s.
 - **The 32 KB pool** fits one P-384 check or one X25519, at the same speed. It was dropped because a whole handshake ran past it, into a fragmented heap.
-- **Single timings vary** by up to 10 % between runs. Donna's fused assembly was a little faster than donna in C on October 19 and a little slower here.
+- **Single timings vary** by up to 10 % between runs. Donna's fused assembly was a little faster than donna in C in one run and a little slower in another.
+
+## How the runs were made
+
+Speed Test compiles Claude 68's engine straight from a checkout, so it times the apps' own code. In place of Claude 68's `uecc_alt.c`, `src/bench_alt.c` has the same three mbedTLS hooks, but each one checks the method settings (`gMethods`) first and times itself. `src/variants/` builds micro-ecc six times (C at -Os and -O3, the unrolled assembly multiply, Karatsuba, Comba without and with Solinas) and X25519 five ways (mbedTLS's own, donna in C, donna with the assembly multiply, donna fused, and today's 8 × 32-bit code). The methods the apps dropped (`unused_*`) live there too, not in Claude 68.
+
+Where the runs differ from what the apps did back then:
+- **mbedTLS** is today's 3.2.1 build, not the 2.x port the apps started with. The "stock mbedTLS" numbers are today's stock math.
+- **The server** is Notion's today, but its chain hasn't changed: WE1 under GTS Root R4.
+- **micro-ecc's compiler flags** changed over time: first -Ofast, the project-wide setting, then -Os, and now -O3. The 14 rows run -Os until the "-O3 for the curve code" row; the crypto part shows -Os and -O3 side by side.
+- **The P-384 check** runs on mbedTLS, as it did at the start.
+- **The caches** are kept in memory, not on disk, and "fresh start" clears them.
+- **BlueSCSI vs PiSCSI** is a hardware change, so it isn't a row.
+- **Not tested**, because none of these are in the code any more: the 68882 FPU, the shared-secret cache, the first session-ticket attempt and the alignment probe.
 
 ## Reading them
 
