@@ -1,157 +1,91 @@
+### 3 seconds faster!
+
+<img src="docs/img/Patcher.png" width="400" alt="Open Transport Bug Patcher, ready to patch">
+
+> [!TIP]
+> **Fix for the Open Transport 1.3 bug** that makes your Classic Mac lose 3 seconds on every connection to some servers, such as Notion and Anthropic behind Cloudflare. [Open Transport Bug Patcher](OpenTransportBugPatcher/) changes 2 bytes to fix it, and the change can be undone with the same patcher.
+
+### Download
+
+<a href="https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.sit"><img src="docs/img/Patch-icon.png" width="32" align="left" alt="OpenTransportBugPatcher.sit"></a>Get [OpenTransportBugPatcher.sit](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.sit) (StuffIt, for the Mac itself) or [OpenTransportBugPatcher.zip](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.zip).
+
 # HTTPS 68K Speedtest
 
-An HTTPS connection test app. It times every TLS handshake method Notion Classic and Claude 68 have used, on the Mac it runs on, so the performance charts can show measured bars instead of calculated ones.
+**How long does a modern HTTPS handshake take on a 68k Mac? Speed Test times it on yours.**
 
-This repo also holds the write-up those numbers feed: **[HTTPS on a 37-Year-Old Mac](docs/modern-HTTPS-on-68k.md)**, how the shared engine gets a 16 MHz 68030 through a modern TLS handshake. The measured runs are in [`results/`](results/).
+Notion Classic and Claude 68 talk TLS 1.2 straight to `api.notion.com` and `api.anthropic.com` from a 16 MHz 68030, with no proxy. With stock mbedTLS, a handshake took 49 seconds on a Mac SE/30, and Cloudflare hangs up after about 15. Now it takes 7 seconds, and under one to resume.
 
-## Open Transport Bug Patcher
+Speed Test replays how it got there. It runs nearly every handshake method the apps have ever used, oldest first, on the Mac it runs on, so every step of the story is measured instead of estimated.
 
-If your 68K Mac runs Open Transport 1.3, every connection it makes to a server behind Cloudflare loses about 3 seconds, Notion and Anthropic included. Open Transport misreads Cloudflare's TCP window scale, so the Mac stalls, then sends everything 16 bytes at a time.
+*Speed Test on the SE/30: stock mbedTLS fails after 49.1 s, today's engine needs 7.09 s, and 0.50 s to resume.*
 
-**[Open Transport Bug Patcher](OpenTransportBugPatcher/)** fixes it. The small app changes 2 bytes in Open Tpt Inet 68K Library, and puts them back if you ask. It only touches the exact Open Transport 1.3 code it knows. On an SE/30, the next page from Notion went from about 4.7 s to 0.8 s.
+![Speed Test after a run, with the handshake time per row](docs/img/Speedtest.png)
 
-**Download:** [OpenTransportBugPatcher.sit](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.sit) (StuffIt, for the Mac itself) or [OpenTransportBugPatcher.zip](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/OpenTransportBugPatcher.zip) (for a modern Mac, which keeps the resource fork when it unzips). Copy it to the Mac, open it, click **Patch**, then **Restart**.
+## What it found
 
-Speed Test is how the bug was found. The [patcher's README](OpenTransportBugPatcher/README.md) tells the story.
+The chart adds the changes one at a time: less work first, then faster math, then the Open Transport fix. On the SE/30 a first page, a handshake plus one small request, went from 52 s to 7 s, and the next page from 52 s to under a second. The Classic II, on its 16-bit bus, went from 77 s to 10 s and 1.8 s.
 
-## HTTPS in your own 68k app
+*Black is the SE/30, grey the Classic II.*
 
-The engine Speed Test times is [Claude 68](https://github.com/SLKK-design/Claude68)'s `src/core`, and Claude 68 is built to be the starting point: a small System 7 app with TLS 1.2, a checked certificate chain and the fast curve code, ready to point at another API. That takes three edits:
-- `src/config.h`: the host, the endpoint and the headers
-- `src/api/`: the request and the response, with a commented `api_template.cpp` to start from
-- the project name in `CMakeLists.txt`
+![A page, then the next one, on both Macs as each change is added](docs/img/Performance.png)
 
-If the server isn't behind Google Trust Services, swap both pinned certificates in `RootCert.cpp` too. Speed Test itself compiles the engine straight from a Claude 68 checkout. Claude 68 is 0BSD, like this repo: use it for anything, no credit needed.
+A handshake is only the start. One API call takes this long, until its answer is on screen:
 
-## Running it
+*The transfer and drawing of a short answer, from a server that answers in about 0.2 s.*
 
-1. Download [SpeedTest.sit](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/SpeedTest.sit) or [SpeedTest.zip](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/SpeedTest.zip) from the [latest release](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest) and copy the app to the Mac, or build it (see Building below). The test-server runs (parts 5 to 7) need your own build, with your own test keys.
-2. The network setup is the same as for Notion Classic: MacTCP or Open Transport, with DNS. On Open Transport 1.3, run [Open Transport Bug Patcher](#open-transport-bug-patcher) first, or the runs to Notion and Anthropic include its 3 s wait.
-3. Choose File > Run Everything (Cmd-R) and leave it alone. The oldest methods take minutes per step. Cmd-period stops the run after the current step. File > Live: Compare Servers (Cmd-T) runs only that part, which takes a few minutes.
-4. The results show in the window and are added to a SimpleText file next to the app, one per build and kind of Mac: **SP - build - bus**, for example *SP - 10241725 - 16-bit* (built October 24 at 17:25, on a Mac with a 16-bit data bus). The Crypto Only run also writes the raw timer gaps behind the randomness check to *SP - 10241725 - 16-bit gaps*. Each run starts with the date, the Mac, the System version, the memory, the Open Transport version and whether Open Transport Bug Patcher has patched it. The app can't see which network adapter is in use, so note BlueSCSI or PiSCSI yourself.
+![One API call on the SE/30, until its answer is on screen: 11.1 s the first time, 5.4 s when returning, 2.2 s for the next call](docs/img/api-call-se30.png)
 
-The File menu can also run each part on its own.
+More complex calls take longer: [a Notion page](https://github.com/SLKK-design/NotionClassic#how-fast-and-how-i-know) takes 17.5, 7.5 and 3.3 s, because it makes three API calls and the Mac reads and draws 29 KB of JSON. [A Claude answer](https://github.com/SLKK-design/Claude68#how-fast), on the other hand, takes 19.4, 10.5 and 6.3 s because Claude thinks and writes while the Mac waits.
 
-## What it measures
+**More technical info:**
+- [HTTPS on a 37-Year-Old Mac](docs/modern-HTTPS-on-68k.md), the deep dive: how each step works
+- [The measured runs](results/)
+- [How Speed Test found the Open Transport bug](OpenTransportBugPatcher/README.md)
 
-**1. Crypto, no network.** Each handshake operation, done with every method that was ever in the code, on fixed inputs:
-- P-256 signature check
-- P-256 check with tables
-- building those tables
-- P-384 check
-- X25519
 
-Every result is checked against known answers (`tools/gen_vectors.py`), so a fast but wrong method shows WRONG instead of a good time. Anything under 5 s runs 3 times, and the middle time is shown.
+## Building Speed Test
 
-It also times three things that are no longer in the code:
-- **the 2-bit and 3-bit windows** tried before wNAF. That code wasn't kept, so `src/variants/uecc_windows.inc` rebuilds them from micro-ecc's own parts; `tests/test_windows.c` checks them on a modern computer first.
-- **a 32 KB pool**: the 64 KB pool with its first half taken, and a note when the math needed more
-- **the Comba multiply without the Solinas reduction**, to show the two steps apart
+The release has the app ready to run. To build it yourself, you need [Retro68](https://github.com/autc04/Retro68) and a checkout of [Claude 68](https://github.com/SLKK-design/Claude68), whose engine Speed Test compiles. CMake looks for it in `../Claude68`; anywhere else, pass its path as below.
 
-**2. Live, today's engine.** Real connections to `api.notion.com`:
-- 3 fresh starts: page 1 is the very first connection, page 2 the next one
-- 3 cold handshakes with the certificate check remembered, as when a ticket is refused
-- 3 resumed handshakes
-
-**3. Live, compare servers.** The same two pages go to Notion, to Anthropic (Claude 68's server) and to Google, taking turns 3 times. Anthropic and Google are only timed, without the certificate check.
-
-Notion and Anthropic are behind Cloudflare, so without [Open Transport Bug Patcher](#open-transport-bug-patcher) the Mac waits about 3 s after its last handshake message, and about 4 s for a resumed page's answer. Google isn't affected. This part was how that bug was tracked down, together with a packet recording on a PiSCSI.
-
-**4. Live, each chart row.** The 14 rows of the SE/30 and Classic II charts, oldest first, each adding one method to the row above. Each row gets a fresh start, then page 1 and page 2. After every page, worked or not, the tables and the next key pair are made, as Claude 68's `SslClose` does. A table at the end lists the handshake times.
-
-**5. Live, each chart row, test server** (File menu, Cmd-L, not in Run Everything). The same 14 rows, against `tools/lab_server.py` on a computer on the Mac's network (the address is `kLabIP` in `tests.cpp`) instead of api.notion.com.
-
-The repo has no keys for the test server. Run `tools/lab/make_certs.sh` once: it makes a new test chain with its own keys and rewrites `src/lab_certs.h`, so build the app after it. Then start the server with `python3 tools/lab_server.py`.
-
-The test server plays Notion's part:
-- the same cipher, ECDHE-ECDSA with ChaCha20-Poly1305 over X25519
-- a certificate chain of the same shape, from `tools/lab/make_certs.sh`: a self-signed P-384 "R4" that the Mac trusts (as the apps trust GTS Root R4), a P-256 "WE1" and a P-256 leaf. The server also sends an RSA-signed copy of R4, as Notion's does, which the Mac never needs to check.
-- session tickets, and an HTTP 401 of the same size
-
-But it has no 15-second limit. So the old rows, which Notion hangs up on, can finish their pages, and their next page can use what the first one stored.
-
-**6. and 7. The same steps in other orders, test server** (Cmd-G and Cmd-F, not in Run Everything):
-- **Grouped Rows**: the 14 steps grouped by kind: faster P-256 math, faster X25519, less work on every page, and what the next page reuses
-- **Less Work First**: 12 steps, first the ones that skip work, with stock math, then the faster math. wNAF and Straus are left out: they need micro-ecc, and with session tickets the next page checks no signature at all.
-
-A "page" is one request, `GET /v1/users/me` with no token, which Notion answers with HTTP 401. It costs the same TLS work as a real page, and nothing private is sent or shown. Every connection reports the TCP connect, the handshake and the request separately. The handshake is split into its crypto (signature checks, key pair, X25519) and the rest (network round trips, parsing, hashing).
-
-## How it switches methods
-
-- The engine is Claude 68's, compiled straight from a [Claude 68](https://github.com/SLKK-design/Claude68) checkout (`CLAUDE68_DIR` in CMake), so it's the apps' own code.
-- `src/bench_alt.c` takes the place of Claude 68's `uecc_alt.c`. It has the same three mbedTLS hooks, but each one checks the current method settings (`gMethods`) first, and times itself.
-- `src/variants/` builds Claude 68's `uECC.c` six times, once per set of flags:
-  - C at -Os
-  - C at -O3
-  - the unrolled assembly multiply
-  - Karatsuba
-  - Comba without Solinas
-  - Comba with Solinas, as built today
-
-  `uecc_rename.h` gives each build its own symbol names, and CMake copies the assembly with the same prefixes.
-- X25519 comes in five versions: mbedTLS's own, donna in C, donna with the assembly multiply, donna fused, and today's 8 x 32-bit code on the Comba assembly.
-- The methods the apps no longer use (`unused_*` in `src/variants/`) live here, not in Claude 68.
-
-## Where it differs from back then
-
-- **mbedTLS** is today's 3.2.1 build, not the 2.x port from March. The "stock mbedTLS" numbers are today's stock math.
-- **The server** is Notion's today: WE1 under GTS Root R4, the same chain as in the October measurements.
-- **micro-ecc's compiler flags** changed over time:
-  - March to May 13: -Ofast, the project-wide setting
-  - May 15 to June 5: -Os
-  - since June 5: -O3
-
-  The chart rows follow the chart and run -Os until the "-O3 for the curve code" row. The crypto part shows -Os and -O3 side by side.
-- **The P-384 check** runs on mbedTLS, as it did in March.
-- **The caches** are kept in memory, not on disk, and "fresh start" clears them.
-- **Open Transport's window-scale bug** cost every connection to Notion about 3 s until October 2026. Runs with the bug patched don't have that wait, so their rows are faster than the apps were at the time.
-- **BlueSCSI vs PiSCSI** is a hardware change, so it isn't a row.
-- **Not tested**, because none of these are in the code any more:
-  - the 68882 FPU
-  - the shared-secret cache
-  - the first session-ticket attempt
-  - the alignment probe
-
-## Building
-
-You need [Retro68](https://github.com/autc04/Retro68) and a checkout of [Claude 68](https://github.com/SLKK-design/Claude68), whose engine this builds. CMake looks for it next to this repo, in `../Claude68`; point `CLAUDE68_DIR` elsewhere if yours is somewhere else.
-
-    cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=<Retro68-build>/toolchain/m68k-apple-macos/cmake/retro68.toolchain.cmake \
-          -DCLAUDE68_DIR=<path to Claude68>
-    make -C build
-
-To regenerate the test vectors (needs the `openssl` command): `python3 tools/gen_vectors.py`.
-
-## Tests
-
-`tests/run_tests.sh` builds and runs host tests for Claude 68's engine on a modern computer, under ASan and UBSan: models of the assembly against micro-ecc's C, the X25519 code against RFC 7748, the 4-point signature check, the TLS random seed's accounting and the app's SSE, JSON and UTF-8 parsing. Like the build, it looks for Claude 68 in `../Claude68`, or set `CLAUDE68_DIR`.
-
-`tools/gen_solinas_m68k.py` and `tools/gen_donna_fused.py` generate assembly and the C models the tests check it against. The Solinas reduction goes into Claude 68's `src/core/net/`.
-
+```bash
+cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=<Retro68-build>/toolchain/m68k-apple-macos/cmake/retro68.toolchain.cmake \
+      -DCLAUDE68_DIR=<path to Claude68>
+make -C build
 ```
-docs/
-  modern-HTTPS-on-68k.md  the HTTPS deep-dive
-OpenTransportBugPatcher/  the Open Transport 1.3 patcher, a separate app with its own README
-results/          the runs, with a README
-  app-logs/       Claude 68's and Notion Classic's own debug logs
-src/
-  main.cpp        window, menu, runs
-  log.cpp         window text and the results file
-  tests.cpp       the runs
-  bench_alt.c     the switchable mbedTLS hooks
-  methods.h       method settings and timing counters
-  vectors.h       test keys and signatures (generated)
-  lab_certs.h     the test server's anchor and WE1 (generated)
-  variants/       the micro-ecc and X25519 builds, and the methods the apps dropped
-tests/            host tests for Claude 68's engine (run_tests.sh)
-tools/
-  gen_vectors.py  writes src/vectors.h
-  lab_server.py   the test server for part 5
-  lab/            make_certs.sh: its certificate chain (makes new test keys; they aren't in the repo)
-  make_charts.py  draws the SVG charts into docs/ from results/
-  gen_*.py        generate the Solinas and fused-donna assembly and their C models
-  set_finder_flags.py  turns on the Finder flags after each build, so the app icons show
-```
+
+The app ends up in `build/` as `SpeedTest.APPL`. Open Transport Bug Patcher builds on its own; [its README](OpenTransportBugPatcher/README.md) has the steps.
+
+For the test-server runs, run `tools/lab/make_certs.sh` once (it makes a test certificate chain with its own keys), set `kLabIP` in `src/tests.cpp` to the server's address, build, and start `python3 tools/lab_server.py`.
+
+How Speed Test switches between methods, and where its runs differ from what the apps did back then, is in [the results README](results/README.md#how-the-runs-were-made).
+
+
+## Measure your Mac
+
+I've only measured two 16 MHz 68030s, both on a SCSI network adapter (BlueSCSI and PiSCSI). I'd love numbers from a 68040, a Mac with a real Ethernet card, or one on plain MacTCP.
+
+1. <a href="https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/SpeedTest.sit"><img src="docs/img/Speedtest-icon.png" width="32" align="center" alt="SpeedTest.sit"></a> Download [SpeedTest.sit](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/SpeedTest.sit) or [SpeedTest.zip](https://github.com/SLKK-design/HTTPS-68K-Speedtest/releases/latest/download/SpeedTest.zip).
+2. On Open Transport 1.3, run [Open Transport Bug Patcher](OpenTransportBugPatcher/) first.
+3. Choose **File > Run Everything** (Cmd-R) and leave it alone. The oldest methods need about a minute each; Cmd-period stops after the current step.
+4. The results go into a SimpleText file next to the app. [Open an issue](https://github.com/SLKK-design/HTTPS-68K-Speedtest/issues) with it, and say which network adapter the Mac uses.
+
+No account or token needed: each "page" is one request that Notion answers with HTTP 401, so nothing private is sent.
+
+### What Run Everything does
+
+- **Crypto Only:** each handshake operation, with nearly every method that was ever in the code, without the network. Every result is checked against known answers, so a fast but wrong method shows WRONG.
+- **Today's Engine:** real connections to Notion, three of each: a first connection, one without a ticket, and a resumed one.
+- **Compare Servers:** the same pages to Notion, Anthropic and Google. This is where the Open Transport bug showed up: only the Cloudflare servers stalled.
+- **Each Chart Row:** stock mbedTLS, then the 13 changes in the order they were made, each added to the row above.
+
+Three more runs, in the File menu, use a test server on your own network instead of Notion. It never hangs up, so the old methods can finish: that's how the stock 49 seconds were measured. They need your own build; see *Building Speed Test*.
+
+
+## Sibling projects
+
+<a href="https://github.com/SLKK-design/NotionClassic"><img src="docs/img/Notion-icon.png" width="32" align="absmiddle" alt="Notion Classic"></a>&nbsp; **[Notion Classic](https://github.com/SLKK-design/NotionClassic)**: reads and edits Notion pages.<br>
+<a href="https://github.com/SLKK-design/Claude68"><img src="docs/img/Claude-icon.png" width="32" align="absmiddle" alt="Claude 68"></a>&nbsp; **[Claude 68](https://github.com/SLKK-design/Claude68)**: a Claude chat client, and the starting point for your own 68k HTTPS app.<br>
+<a href="https://github.com/SLKK-design/MacPlayer"><img src="docs/img/MacPlay-icon.png" width="32" align="absmiddle" alt="MacPlayer"></a>&nbsp; **[MacPlayer](https://github.com/SLKK-design/MacPlayer)**: Anthony Super's Spotify remote, working again.
 
 ## License
 
